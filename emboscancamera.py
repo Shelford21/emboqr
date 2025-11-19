@@ -76,14 +76,28 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
         return frame
 
 
+from streamlit_webrtc import webrtc_streamer, WebRtcMode
+
 webrtc_streamer(
-    key="example",
+    key="test",
     mode=WebRtcMode.RECVONLY,
-    rtc_configuration=rtc_conf,
+    rtc_configuration={
+        "iceServers": [
+            {"urls": ["stun:stun.l.google.com:19302"]},
+            {
+                "urls": ["turn:openrelay.metered.ca:80",
+                         "turn:openrelay.metered.ca:443",
+                         "turn:openrelay.metered.ca:443?transport=tcp"],
+                "username": "openrelayproject",
+                "credential": "openrelayproject",
+            },
+        ]
+    },
     media_stream_constraints={"video": True, "audio": False},
-    video_frame_callback=video_frame_callback,
 )
+
 
 # Display results
 st.text_input("Field 1", st.session_state.decoded_text1)
 st.text_input("Field 2", st.session_state.decoded_text2)
+
