@@ -1,6 +1,7 @@
 streamlit
 streamlit-webrtc
 opencv-python-headless
+pyzbar
 numpy
 Pillow
 av
@@ -8,3 +9,4 @@ qrcode
 git+https://github.com/streamlit/gsheets-connection
 xlsxwriter
 datetime
+
