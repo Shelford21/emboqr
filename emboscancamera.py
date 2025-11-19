@@ -5,38 +5,53 @@ import cv2
 import numpy as np
 from pyzbar.pyzbar import decode, ZBarSymbol
 
-st.title("Page 2 — Stable QR Scanner (pyzbar)")
+st.title("QR Scanner Page")
 
 if "decoded_text1" not in st.session_state:
     st.session_state.decoded_text1 = ""
 if "decoded_text2" not in st.session_state:
     st.session_state.decoded_text2 = ""
 
+# TURN + STUN CONFIG (important for Streamlit Cloud)
+rtc_conf = {
+    "iceServers": [
+        {"urls": ["stun:stun.l.google.com:19302"]},
+        {
+            "urls": "turn:global.relay.metered.ca:80",
+            "username": "open",
+            "credential": "open",
+        },
+    ]
+}
+
 def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
+    # ALWAYS SAFE FRAME
     try:
         img = frame.to_ndarray(format="bgr24")
-    except Exception:
-        return frame  # fail safely
+    except:
+        return frame
 
-    # Convert to grayscale for pyzbar
+    # Convert to grayscale
     try:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    except Exception:
-        return frame  # fail safely
+    except:
+        return frame
 
+    # Decode QR
     try:
-        decoded_list = decode(gray, symbols=[ZBarSymbol.QRCODE])
-    except Exception:
-        decoded_list = []
+        decoded = decode(gray, symbols=[ZBarSymbol.QRCODE])
+    except:
+        decoded = []
 
-    if decoded_list:
-        qr = decoded_list[0]
+    if decoded:
+        qr = decoded[0]
 
         try:
             data = qr.data.decode("utf-8")
-        except Exception:
+        except:
             data = ""
 
+        # expecting: "text1|||text2"
         if "|||" in data:
             t1, t2 = data.split("|||", 1)
         else:
@@ -45,7 +60,7 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
         st.session_state.decoded_text1 = t1
         st.session_state.decoded_text2 = t2
 
-        # draw polygon safely
+        # Draw polygon (SAFE)
         try:
             pts = qr.polygon
             if pts and len(pts) >= 4:
@@ -54,8 +69,21 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
         except:
             pass
 
-    # ALWAYS return a valid frame
+    # Always return a valid frame
     try:
         return av.VideoFrame.from_ndarray(img, format="bgr24")
     except:
         return frame
+
+
+webrtc_streamer(
+    key="example",
+    mode=WebRtcMode.RECVONLY,
+    rtc_configuration=rtc_conf,
+    media_stream_constraints={"video": True, "audio": False},
+    video_frame_callback=video_frame_callback,
+)
+
+# Display results
+st.text_input("Field 1", st.session_state.decoded_text1)
+st.text_input("Field 2", st.session_state.decoded_text2)
