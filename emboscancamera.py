@@ -8,8 +8,7 @@ import numpy as np
 st.title("Page 2 — Scan QR using Camera (OpenCV)")
 
 st.markdown("""
-This page uses the browser camera and OpenCV's `QRCodeDetector` (no `zbar` needed).
-If deployed to Streamlit Cloud, make sure camera permission is allowed in the app settings.
+`QRCodeDetector` (no `zbar` needed).
 """)
 
 # init session keys
@@ -83,3 +82,4 @@ if st.button("Submit scanned values"):
     st.write("Text 1:", text1)
     st.write("Text 2:", text2)
     # add your save-to-Google-Sheets or other logic here
+
