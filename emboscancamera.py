@@ -4,11 +4,13 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode
 import av
 import cv2
 import numpy as np
+from pyzbar.pyzbar import decode
 
-st.title("Page 2 — Scan QR using Camera (OpenCV)")
+st.title("Page 2 — Scan QR using Camera (ZBAR / pyzbar)")
 
 st.markdown("""
-`QRCodeDetector` (no `zbar` needed).
+Using **pyzbar** + ZBar C library  
+(ensure `libzbar0` & `libzbar-dev` are in `packages.txt`)
 """)
 
 # init session keys
@@ -17,38 +19,34 @@ if "decoded_text1" not in st.session_state:
 if "decoded_text2" not in st.session_state:
     st.session_state.decoded_text2 = ""
 
-qr_detector = cv2.QRCodeDetector()
-
 def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
     img = frame.to_ndarray(format="bgr24")
 
-    # detect & decode
-    try:
-        data, bbox, _ = qr_detector.detectAndDecode(img)
-    except Exception:
-        data = ""
+    # Convert image to grayscale for pyzbar
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    if data:
+    decoded = decode(gray)
+
+    if decoded:
+        qr = decoded[0]
+        data = qr.data.decode("utf-8")
+
         # expected format: part1|||part2
         if "|||" in data:
             t1, t2 = data.split("|||", 1)
             st.session_state.decoded_text1 = t1
             st.session_state.decoded_text2 = t2
         else:
-            # if format differs, put the whole string in text1
             st.session_state.decoded_text1 = data
             st.session_state.decoded_text2 = ""
 
-    # optionally draw bbox
-    if bbox is not None and len(bbox) > 0:
-        pts = np.int32(bbox).reshape(-1, 2)
-        for i in range(len(pts)):
-            pt1 = tuple(pts[i])
-            pt2 = tuple(pts[(i + 1) % len(pts)])
-            cv2.line(img, pt1, pt2, (0, 255, 0), 2)
+        # draw bounding box
+        pts = qr.polygon
+        pts = np.array([(p.x, p.y) for p in pts], dtype=np.int32)
+
+        cv2.polylines(img, [pts], isClosed=True, color=(0, 255, 0), thickness=2)
 
     return av.VideoFrame.from_ndarray(img, format="bgr24")
-
 
 # Use a public TURN server to avoid RTC negotiation issues on Cloud
 rtc_conf = {
@@ -72,6 +70,7 @@ webrtc_ctx = webrtc_streamer(
 
 st.markdown("**Decoded fields (auto-filled):**")
 c1, c2 = st.columns(2)
+
 with c1:
     text1 = st.text_input("Decoded Text 1", value=st.session_state.decoded_text1, key="decoded1")
 with c2:
@@ -81,5 +80,4 @@ if st.button("Submit scanned values"):
     st.success("Submitted:")
     st.write("Text 1:", text1)
     st.write("Text 2:", text2)
-    # add your save-to-Google-Sheets or other logic here
-
+    # You can add Google Sheets / database upload here
