@@ -1,0 +1,11 @@
+streamlit
+streamlit-webrtc
+pyzbar
+opencv-python-headless
+numpy
+Pillow
+av
+qrcode
+git+https://github.com/streamlit/gsheets-connection
+xlsxwriter
+datetime
